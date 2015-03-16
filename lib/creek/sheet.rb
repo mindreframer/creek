@@ -37,6 +37,10 @@ module Creek
       rows_generator
     end
 
+    def rows_array
+      rows_array_generator
+    end
+
     ##
     # Provides an Enumerator that returns a hash representing each row.
     # The hash contains meta data of the row and a 'cells' embended hash which contains the cell contents.
@@ -48,7 +52,7 @@ module Creek
     ##
     # Returns valid Excel column name for a given column index.
     # For example, returns "A" for 0, "B" for 1 and "AQ" for 42.
-    def col_name i
+    def col_name(i)
       quot = i/26
       (quot>0 ? col_name(quot-1) : "") + (i%26+65).chr
     end
@@ -64,8 +68,10 @@ module Creek
         opener = Nokogiri::XML::Reader::TYPE_ELEMENT
         closer = Nokogiri::XML::Reader::TYPE_END_ELEMENT
         Enumerator.new do |y|
-          shared, row, cells, cell = false, nil, {}, nil
-          cell_type  = nil
+          row            = nil
+          cells          = {}
+          cell           = nil
+          cell_type      = nil
           cell_style_idx = nil
           @book.files.file.open(path) do |xml|
             Nokogiri::XML::Reader.from_io(xml).each do |node|
@@ -113,8 +119,8 @@ module Creek
         last_col       = last_col.gsub(row_number, '')
         last_col_index = @@excel_col_names[last_col]
         [*(0..last_col_index)].each do |i|
-          col = col_name i
-          id = "#{col}#{row_number}"
+          col = col_name(i)
+          id  = "#{col}#{row_number}"
           unless cells.has_key? id
             new_cells[id] = nil
           else
@@ -123,6 +129,59 @@ module Creek
         end
       end
       new_cells
+    end
+
+    def col_index_for_cell_address(cell_address)
+      col       = cell_address.delete('^A-Z')
+      col_index = @@excel_col_names[col]
+    end
+
+
+    ##
+    # Returns a hash per row that includes the cell ids and values.
+    # Empty cells will be also included in the hash with a nil value.
+    def rows_array_generator
+      path = "xl/worksheets/sheet#{@index}.xml"
+      if @book.files.file.exist?(path)
+        # SAX parsing, Each element in the stream comes through as two events:
+        # one to open the element and one to close it.
+        opener = Nokogiri::XML::Reader::TYPE_ELEMENT
+        closer = Nokogiri::XML::Reader::TYPE_END_ELEMENT
+        Enumerator.new do |y|
+          row            = nil
+          cell_type      = nil
+          cell_style_idx = nil
+          cell_address   = nil
+          @book.files.file.open(path) do |xml|
+            Nokogiri::XML::Reader.from_io(xml).each do |node|
+              if (node.name.eql? 'row') and (node.node_type.eql? opener)
+                row = []
+                y << (row) if node.self_closing?
+
+              elsif (node.name.eql? 'row') and (node.node_type.eql? closer)
+                y << row
+
+              elsif (node.name.eql? 'c') and (node.node_type.eql? opener)
+                cell_type      = node.attribute('t')
+                cell_style_idx = node.attribute('s')
+                cell_address   = node.attribute('r')
+
+              elsif (node.name.eql? 'c') and (node.node_type.eql? closer)
+                cell_type      = nil
+                cell_style_idx = nil
+                cell_address   = nil
+
+              elsif (node.name.eql? '#text')
+                if !cell_address.nil? and node.value?
+                  idx      = col_index_for_cell_address(cell_address)
+                  value    = convert(node.value, cell_type, cell_style_idx)
+                  row[idx] = value
+                end
+              end
+            end
+          end
+        end
+      end
     end
   end
 end
