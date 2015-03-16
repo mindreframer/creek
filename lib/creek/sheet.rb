@@ -13,14 +13,14 @@ module Creek
                 :index
 
 
-    def initialize book, name, sheetid, state, visible, rid, index
-      @book = book
-      @name = name
+    def initialize(book, name, sheetid, state, visible, rid, index)
+      @book    = book
+      @name    = name
       @sheetid = sheetid
       @visible = visible
-      @rid = rid
-      @state = state
-      @index = index
+      @rid     = rid
+      @state   = state
+      @index   = index
 
       # An XLS file has only 256 columns, however, an XLSX or XLSM file can contain up to 16384 columns.
       # This function creates a hash with all valid XLSX column names and associated indices.
@@ -56,7 +56,7 @@ module Creek
     ##
     # Returns a hash per row that includes the cell ids and values.
     # Empty cells will be also included in the hash with a nil value.
-    def rows_generator include_meta_data=false
+    def rows_generator(include_meta_data=false)
       path = "xl/worksheets/sheet#{@index}.xml"
       if @book.files.file.exist?(path)
         # SAX parsing, Each element in the stream comes through as two events:
@@ -70,16 +70,15 @@ module Creek
           @book.files.file.open(path) do |xml|
             Nokogiri::XML::Reader.from_io(xml).each do |node|
               if (node.name.eql? 'row') and (node.node_type.eql? opener)
-                row = node.attributes
+                row          = node.attributes
                 row['cells'] = Hash.new
-                cells = Hash.new
+                cells        = Hash.new
                 y << (include_meta_data ? row : cells) if node.self_closing?
               elsif (node.name.eql? 'row') and (node.node_type.eql? closer)
                 processed_cells = fill_in_empty_cells(cells, row['r'], cell)
-                row['cells'] = processed_cells
+                row['cells']    = processed_cells
                 y << (include_meta_data ? row : processed_cells)
               elsif (node.name.eql? 'c') and (node.node_type.eql? opener)
-                  shared = node.attribute('t').eql? 's'
                 cell_type      = node.attribute('t')
                 cell_style_idx = node.attribute('s')
                 cell           = node.attribute('r')
@@ -107,17 +106,17 @@ module Creek
     ##
     # The unzipped XML file does not contain any node for empty cells.
     # Empty cells are being padded in using this function
-    def fill_in_empty_cells cells, row_number, last_col
+    def fill_in_empty_cells(cells, row_number, last_col)
       new_cells = Hash.new
       unless cells.empty?
-        keys = cells.keys.sort
-        last_col = last_col.gsub(row_number, '')
+        keys           = cells.keys.sort
+        last_col       = last_col.gsub(row_number, '')
         last_col_index = @@excel_col_names[last_col]
         [*(0..last_col_index)].each do |i|
           col = col_name i
           id = "#{col}#{row_number}"
           unless cells.has_key? id
-              new_cells[id] = nil
+            new_cells[id] = nil
           else
             new_cells[id] = cells[id]
           end

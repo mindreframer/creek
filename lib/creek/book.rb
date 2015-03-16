@@ -15,7 +15,7 @@ module Creek
         extension = File.extname(options[:original_filename] || path).downcase
         raise 'Not a valid file format.' unless (['.xlsx', '.xlsm'].include? extension)
       end
-      @files = Zip::File.open path
+      @files          = Zip::File.open path
       @shared_strings = SharedStrings.new(self)
     end
 
