@@ -4,13 +4,13 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'creek/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "creek"
+  spec.name          = "mindreframer-creek"
   spec.version       = Creek::VERSION
   spec.authors       = ["pythonicrubyist"]
   spec.email         = ["pythonicrubyist@gmail.com"]
   spec.description   = %q{A Ruby gem that streams and parses large Excel(xlsx and xlsm) files fast and efficiently.}
   spec.summary       = %q{A Ruby gem for parsing large Excel(xlsx and xlsm) files.}
-  spec.homepage      = "https://github.com/pythonicrubyist/creek"
+  spec.homepage      = "https://github.com/mindreframer/creek"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)
