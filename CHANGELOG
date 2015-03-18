@@ -1,0 +1,8 @@
+# 1.0.6:
+  - Problem: for some dates, type = 'n' is not specified in xml
+      <c r="M1" s="6">
+          <v>41306</v>
+      </c>
+  - Solution:
+    ignore it completelly
+
