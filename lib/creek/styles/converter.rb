@@ -26,7 +26,7 @@ module Creek
         return nil if value.nil? || value.empty?
 
         # Sometimes the type is dictated by the style alone
-        if type.nil? || (type == 'n' && DATE_TYPES.include?(style))
+        if type.nil? || (DATE_TYPES.include?(style))
           type = style
         end
 
